@@ -1,0 +1,494 @@
+MONGO_URI=mongodb+srv://bibliotecarolim:123789456@cluster0.mlz1t.mongodb.net/key-loan-system?retryWrites=true&w=majority
+PORT=5000
+<html><head><base href="https://bibliotecafernandopessoa.exemplo.com/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Empréstimo de Chaves - Biblioteca Setorial Fernando Pessoa</title>
+<style>
+  :root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --background-color: #ecf0f1;
+    --text-color: #333;
+  }
+  body {
+    font-family: 'Roboto', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  header {
+    background-color: var(--primary-color);
+    color: white;
+    text-align: center;
+    padding: 20px 0;
+    margin-bottom: 30px;
+  }
+  h1 {
+    font-size: 2.5em;
+    margin: 0;
+  }
+  h2, h3 {
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  input[type="text"],
+  input[type="tel"],
+  select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+  }
+  button {
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background-color: #2980b9;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+  }
+  .key {
+    background-color: #ddd;
+    text-align: center;
+    padding: 15px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .key:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  .key.available {
+    background-color: var(--secondary-color);
+    color: white;
+  }
+  .key.borrowed {
+    background-color: var(--accent-color);
+    color: white;
+  }
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+  }
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 30px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    transition: color 0.3s ease;
+  }
+  .close:hover,
+  .close:focus {
+    color: var(--accent-color);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .key-icon {
+    position: fixed;
+    left: 20px;
+    top: 20px;
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    fill: var(--primary-color);
+    transition: fill 0.3s ease;
+  }
+  .key-icon:hover {
+    fill: var(--secondary-color);
+  }
+  .key-status {
+    display: none;
+    position: fixed;
+    left: 90px;
+    top: 20px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+  .return-key {
+    position: fixed;
+    right: 20px;
+    top: 20px;
+  }
+  .borrowed-keys {
+    margin-top: 15px;
+    font-size: 0.9em;
+  }
+  .borrowed-key {
+    margin-bottom: 8px;
+    padding: 5px;
+    background-color: #f1f1f1;
+    border-radius: 4px;
+  }
+  .daily-loan-counter {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  @media (max-width: 768px) {
+    .container {
+      padding: 10px;
+    }
+    h1 {
+      font-size: 2em;
+    }
+    .key-icon, .return-key {
+      position: static;
+      display: inline-block;
+      margin: 10px;
+    }
+    .key-status {
+      position: static;
+      margin-top: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sistema de Empréstimo de Chaves</h1>
+  <h2>Biblioteca Setorial Fernando Pessoa</h2>
+</header>
+
+<div class="container">
+  <div id="loginScreen">
+    <h3>Login do Usuário</h3>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="matricula">Matrícula:</label>
+        <input type="text" id="matricula" name="matricula" required>
+      </div>
+      <div class="form-group">
+        <label for="contato">Número de Contato:</label>
+        <input type="tel" id="contato" name="contato" required>
+      </div>
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+
+  <div id="selectionScreen" style="display: none;">
+    <h3>Seleção de Chaves</h3>
+    <div class="grid" id="keyGrid"></div>
+    <div class="form-group">
+      <label for="selectedKey">Chave Selecionada:</label>
+      <select id="selectedKey" name="selectedKey"></select>
+    </div>
+    <button id="confirmLoan">Confirmar Empréstimo</button>
+  </div>
+
+  <div id="confirmationModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Confirmação de Empréstimo</h3>
+      <p id="confirmationDetails"></p>
+      <button id="concludeLoan">Concluir</button>
+    </div>
+  </div>
+</div>
+
+<svg class="key-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 19H16V15H13.32C12.18 17.42 9.72 19 7 19C3.14 19 0 15.86 0 12C0 8.14 3.14 5 7 5C9.72 5 12.18 6.58 13.32 9H22V15H24V19H22ZM18 17H20V13H18V17ZM7 7C4.24 7 2 9.24 2 12C2 14.76 4.24 17 7 17C9.76 17 12 14.76 12 12C12 9.24 9.76 7 7 7ZM7 15C5.34 15 4 13.66 4 12C4 10.34 5.34 9 7 9C8.66 9 10 10.34 10 12C10 13.66 8.66 15 7 15Z"/>
+</svg>
+
+<div class="key-status">
+  <h3>Status das Chaves</h3>
+  <p>Disponíveis: <span id="availableCount"></span></p>
+  <p>Emprestadas: <span id="borrowedCount"></span></p>
+  <div class="borrowed-keys">
+    <h4>Chaves Emprestadas:</h4>
+    <div id="borrowedKeysList"></div>
+  </div>
+</div>
+
+<button class="return-key" id="returnKeyBtn">Devolver Chave</button>
+
+<div id="returnKeyModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h3>Devolução de Chave</h3>
+    <div class="form-group">
+      <label for="returnMatricula">Matrícula:</label>
+      <input type="text" id="returnMatricula" name="returnMatricula" required>
+    </div>
+    <button id="confirmReturn">Confirmar Devolução</button>
+  </div>
+</div>
+
+<div id="dailyLoanCounter" class="daily-loan-counter">
+  Empréstimos hoje: <span id="loanCount">0</span>
+</div>
+
+<script>
+function mockCloudSync(action, data) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (action === 'get') {
+        const cloudData = localStorage.getItem('cloudData');
+        resolve(cloudData ? JSON.parse(cloudData) : null);
+      } else if (action === 'set') {
+        localStorage.setItem('cloudData', JSON.stringify(data));
+        resolve();
+      } else {
+        reject(new Error('Invalid action'));
+      }
+    }, 500); // Simulating network delay
+  });
+}
+
+async function syncData() {
+  try {
+    const cloudData = await mockCloudSync('get');
+    if (cloudData) {
+      keys = cloudData.keys;
+      dailyLoanCount = cloudData.dailyLoanCount;
+      renderKeys();
+      updateDailyLoanCount();
+    }
+    await mockCloudSync('set', { keys, dailyLoanCount });
+  } catch (error) {
+    console.error('Sync failed:', error);
+  }
+}
+
+async function saveKeys() {
+  localStorage.setItem('keys', JSON.stringify(keys));
+  await syncData();
+}
+
+async function loadKeys() {
+  await syncData();
+  const savedKeys = localStorage.getItem('keys');
+  return savedKeys ? JSON.parse(savedKeys) : Array.from({length: 100}, (_, i) => ({
+    number: i + 1,
+    status: 'available',
+    matricula: null
+  }));
+}
+
+async function saveDailyLoanCount() {
+  localStorage.setItem('dailyLoanCount', dailyLoanCount);
+  await syncData();
+}
+
+async function loadDailyLoanCount() {
+  await syncData();
+  return parseInt(localStorage.getItem('dailyLoanCount') || '0');
+}
+
+setInterval(syncData, 30000); // Sync every 30 seconds
+
+document.addEventListener('DOMContentLoaded', async function() {
+  keys = await loadKeys();
+  dailyLoanCount = await loadDailyLoanCount();
+  
+  const loginForm = document.getElementById('loginForm');
+  const loginScreen = document.getElementById('loginScreen');
+  const selectionScreen = document.getElementById('selectionScreen');
+  const keyGrid = document.getElementById('keyGrid');
+  const selectedKey = document.getElementById('selectedKey');
+  const confirmLoanBtn = document.getElementById('confirmLoan');
+  const confirmationModal = document.getElementById('confirmationModal');
+  const confirmationDetails = document.getElementById('confirmationDetails');
+  const concludeLoanBtn = document.getElementById('concludeLoan');
+  const closeModal = document.querySelectorAll('.close');
+  const keyIcon = document.querySelector('.key-icon');
+  const keyStatus = document.querySelector('.key-status');
+  const availableCount = document.getElementById('availableCount');
+  const borrowedCount = document.getElementById('borrowedCount');
+  const borrowedKeysList = document.getElementById('borrowedKeysList');
+  const returnKeyBtn = document.getElementById('returnKeyBtn');
+  const returnKeyModal = document.getElementById('returnKeyModal');
+  const returnMatricula = document.getElementById('returnMatricula');
+  const confirmReturn = document.getElementById('confirmReturn');
+
+  function renderKeys() {
+    keyGrid.innerHTML = '';
+    selectedKey.innerHTML = '<option value="">Selecione uma chave</option>';
+    keys.forEach(key => {
+      const keyElement = document.createElement('div');
+      keyElement.className = `key ${key.status}`;
+      keyElement.textContent = key.number;
+      keyGrid.appendChild(keyElement);
+
+      if (key.status === 'available') {
+        const option = document.createElement('option');
+        option.value = key.number;
+        option.textContent = `Chave ${key.number}`;
+        selectedKey.appendChild(option);
+      }
+    });
+    updateKeyStatus();
+  }
+
+  function updateKeyStatus() {
+    const available = keys.filter(k => k.status === 'available').length;
+    const borrowed = keys.length - available;
+    availableCount.textContent = available;
+    borrowedCount.textContent = borrowed;
+
+    borrowedKeysList.innerHTML = '';
+    keys.filter(k => k.status === 'borrowed').forEach(key => {
+      const keyItem = document.createElement('div');
+      keyItem.className = 'borrowed-key';
+      keyItem.textContent = `Chave ${key.number} - Matrícula: ${key.matricula}`;
+      borrowedKeysList.appendChild(keyItem);
+    });
+  }
+
+  loginForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const matricula = document.getElementById('matricula').value;
+    const contato = document.getElementById('contato').value;
+    if (matricula && contato) {
+      loginScreen.style.display = 'none';
+      selectionScreen.style.display = 'block';
+      renderKeys();
+    } else {
+      alert('Por favor, preencha todos os campos.');
+    }
+  });
+
+  confirmLoanBtn.addEventListener('click', function() {
+    const keyNumber = selectedKey.value;
+    if (keyNumber) {
+      const key = keys.find(k => k.number === parseInt(keyNumber));
+      if (key && key.status === 'available') {
+        key.status = 'borrowed';
+        key.matricula = document.getElementById('matricula').value;
+        confirmationDetails.innerHTML = `
+          <strong>Matrícula:</strong> ${key.matricula}<br>
+          <strong>Contato:</strong> ${document.getElementById('contato').value}<br>
+          <strong>Chave emprestada:</strong> ${keyNumber}
+        `;
+        confirmationModal.style.display = 'block';
+        saveKeys();
+      } else {
+        alert('Esta chave não está disponível.');
+      }
+    } else {
+      alert('Por favor, selecione uma chave.');
+    }
+  });
+
+  concludeLoanBtn.addEventListener('click', async function() {
+    confirmationModal.style.display = 'none';
+    loginScreen.style.display = 'block';
+    selectionScreen.style.display = 'none';
+    loginForm.reset();
+    renderKeys();
+    
+    dailyLoanCount++;
+    await updateDailyLoanCount();
+  });
+
+  closeModal.forEach(close => {
+    close.addEventListener('click', function() {
+      confirmationModal.style.display = 'none';
+      returnKeyModal.style.display = 'none';
+    });
+  });
+
+  keyIcon.addEventListener('mouseover', function() {
+    keyStatus.style.display = 'block';
+  });
+
+  keyIcon.addEventListener('mouseout', function() {
+    keyStatus.style.display = 'none';
+  });
+
+  returnKeyBtn.addEventListener('click', function() {
+    returnKeyModal.style.display = 'block';
+  });
+
+  confirmReturn.addEventListener('click', async function() {
+    const matricula = returnMatricula.value;
+    const borrowedKey = keys.find(k => k.matricula === matricula && k.status === 'borrowed');
+    if (borrowedKey) {
+      borrowedKey.status = 'available';
+      borrowedKey.matricula = null;
+      alert(`Chave ${borrowedKey.number} devolvida com sucesso.`);
+      returnKeyModal.style.display = 'none';
+      returnMatricula.value = '';
+      await renderKeys();
+      await saveKeys();
+    } else {
+      alert('Matrícula não encontrada ou não possui chave emprestada.');
+    }
+  });
+
+  window.addEventListener('click', function(event) {
+    if (event.target == confirmationModal) {
+      confirmationModal.style.display = 'none';
+    }
+    if (event.target == returnKeyModal) {
+      returnKeyModal.style.display = 'none';
+    }
+  });
+
+  async function updateDailyLoanCount() {
+    document.getElementById('loanCount').textContent = dailyLoanCount;
+    await saveDailyLoanCount();
+  }
+
+  await updateDailyLoanCount();
+  renderKeys();
+});
+</script>
+</body></html>
